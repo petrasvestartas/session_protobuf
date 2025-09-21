@@ -8,6 +8,11 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+# Required permissions for creating releases
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build:
     name: Build on ${{ matrix.os }}
