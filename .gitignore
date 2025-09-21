@@ -12,8 +12,12 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
-*.cmake
+# Exclude generated CMake files but keep source CMake modules
+/build/**/*.cmake
+/cmake-build-*/**/*.cmake
 !CMakeLists.txt
+# Keep essential CMake modules in src/
+!src/**/*.cmake
 
 # Generated makefiles and project files
 *.make
