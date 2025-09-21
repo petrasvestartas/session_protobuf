@@ -18,7 +18,7 @@ jobs:
         include:
           - os: windows-latest
             platform: win64
-            script: build.bat
+            script: .\build.bat
             artifact_name: protobuf-win64
             artifact_path: install-win64
           - os: ubuntu-latest
@@ -68,8 +68,15 @@ jobs:
       if: runner.os != 'Windows'
       run: chmod +x build.sh
 
-    - name: Build protobuf
+    - name: Build protobuf (Windows)
+      if: runner.os == 'Windows'
       run: ${{ matrix.script }}
+      shell: cmd
+
+    - name: Build protobuf (Unix)
+      if: runner.os != 'Windows'
+      run: ${{ matrix.script }}
+      shell: bash
 
     - name: Create archive
       shell: bash
