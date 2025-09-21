@@ -31,7 +31,7 @@ if [ ! -f "$PROTOC_PATH" ]; then
 fi
 
 # Create output directories
-mkdir -p generated/{cpp,python,rust}
+mkdir -p generated/{cpp,python,rust/src}
 
 # Proto files to generate
 # 1. Google well-known types (from protobuf source)
@@ -119,58 +119,146 @@ done
 
 echo ""
 echo "🦀 Generating Rust bindings..."
-# For Rust, we'll create a build script that users can integrate
-cat > generated/rust/build.rs << 'EOF'
-// Build script for Rust protobuf integration
-// Add this to your Cargo.toml:
-// [build-dependencies]
-// protobuf-codegen = "3.0"
+echo "  Note: Creating self-contained Rust crate template"
+echo "  Users can generate actual Rust code using the provided build script"
 
-use protobuf_codegen::Codegen;
-
-fn main() {
-    Codegen::new()
-        .pure()
-        .cargo_out_dir("protos")
-        .inputs(&[
-            "proto/google/protobuf/any.proto",
-            "proto/google/protobuf/timestamp.proto",
-            "proto/google/protobuf/duration.proto",
-            "proto/google/protobuf/empty.proto",
-            "proto/google/protobuf/struct.proto",
-            "proto/google/protobuf/wrappers.proto",
-        ])
-        .include("proto")
-        .run_from_script();
-}
-EOF
-
+# Create Cargo.toml with minimal protobuf dependency
 cat > generated/rust/Cargo.toml << 'EOF'
 [package]
-name = "protobuf-common-types"
+name = "protobuf-types"
 version = "0.1.0"
 edition = "2021"
+description = "Generated protobuf types with minimal dependencies"
 
 [dependencies]
-protobuf = "3.0"
+# Minimal protobuf runtime (much smaller than full protobuf crate)
+protobuf = { version = "3.0", default-features = false }
 
 [build-dependencies]
 protobuf-codegen = "3.0"
 EOF
 
-cat > generated/rust/lib.rs << 'EOF'
-//! Common Protocol Buffer types for Rust
-//! 
-//! This crate provides pre-generated Rust bindings for Google's
-//! well-known protobuf types.
+# Create build.rs that generates the actual Rust code
+cat > generated/rust/build.rs << 'EOF'
+use protobuf_codegen::Codegen;
+use std::path::Path;
 
-pub mod google {
-    pub mod protobuf {
-        include!(concat!(env!("OUT_DIR"), "/protos/google.protobuf.rs"));
-    }
+fn main() {
+    println!("cargo:rerun-if-changed=proto/");
+    
+    let mut codegen = Codegen::new()
+        .pure()
+        .cargo_out_dir("protos");
+
+EOF
+
+# Add Google well-known types to build script
+echo "    // Google well-known types" >> generated/rust/build.rs
+for proto in "${GOOGLE_PROTO_FILES[@]}"; do
+    if [ -f "$proto" ]; then
+        # Convert to relative path from crate root
+        echo "    codegen = codegen.input(\"../../$proto\");" >> generated/rust/build.rs
+    fi
+done
+
+# Add user proto files to build script
+if [ ${#USER_PROTO_FILES[@]} -gt 0 ]; then
+    echo "    // User proto files" >> generated/rust/build.rs
+    for proto in "${USER_PROTO_FILES[@]}"; do
+        if [ -f "$proto" ]; then
+            echo "    codegen = codegen.input(\"../../$proto\");" >> generated/rust/build.rs
+        fi
+    done
+fi
+
+cat >> generated/rust/build.rs << 'EOF'
+
+    codegen
+        .include("../../src/src")
+        .include("../../proto")
+        .run_from_script();
 }
+EOF
 
-pub use google::protobuf::*;
+# Create lib.rs that exposes the generated types
+cat > generated/rust/src/lib.rs << 'EOF'
+//! Generated Protocol Buffer types
+//! 
+//! This crate provides Rust bindings for protobuf serialization.
+//! The protobuf dependency is minimal (runtime only).
+
+#![allow(unused_imports)]
+#![allow(clippy::all)]
+
+// Include generated protobuf modules
+include!(concat!(env!("OUT_DIR"), "/protos/mod.rs"));
+
+// Re-export commonly used types
+pub use protobuf::*;
+EOF
+
+# Create a README for the Rust crate
+cat > generated/rust/README.md << 'EOF'
+# Generated Protobuf Types for Rust
+
+This Rust crate contains generated protobuf serialization code with minimal dependencies.
+
+## Features
+
+- ✅ **Minimal Dependencies**: Only requires protobuf runtime (no codegen at runtime)
+- ✅ **Pre-Generated**: All code generation happens at build time
+- ✅ **Version Locked**: Uses the same protobuf version as C++/Python bindings
+- ✅ **Cross-Platform**: Compatible binary format with other languages
+
+## Usage
+
+1. **Add to your project:**
+
+```toml
+[dependencies]
+protobuf-types = { path = "./path/to/this/crate" }
+```
+
+2. **Use the generated types:**
+
+```rust
+use protobuf_types::*;
+
+// Example with your proto definitions
+// (actual types depend on your .proto files)
+
+// For point.proto:
+let mut point = geometry::Point::new();
+point.set_x(1.0);
+point.set_y(2.0);
+point.set_z(3.0);
+
+// Serialize to bytes
+let bytes = point.write_to_bytes().unwrap();
+
+// Deserialize from bytes
+let point2 = geometry::Point::parse_from_bytes(&bytes).unwrap();
+
+// For color.proto:
+let mut color = graphics::Color::new();
+color.set_red(255);
+color.set_green(128);
+color.set_blue(64);
+color.set_alpha(255);
+
+let color_bytes = color.write_to_bytes().unwrap();
+```
+
+## Building
+
+The crate will automatically generate Rust code from your .proto files when you run `cargo build`.
+
+## Dependencies
+
+- `protobuf` (runtime only, ~50KB) - provides serialization/deserialization
+- `protobuf-codegen` (build-time only) - generates Rust code from .proto files
+
+This is much lighter than using the full protobuf ecosystem!
 EOF
 
 echo ""

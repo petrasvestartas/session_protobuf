@@ -1,0 +1,12 @@
+[package]
+name = "protobuf-types"
+version = "0.1.0"
+edition = "2021"
+description = "Generated protobuf types with minimal dependencies"
+
+[dependencies]
+# Minimal protobuf runtime (much smaller than full protobuf crate)
+protobuf = { version = "3.0", default-features = false }
+
+[build-dependencies]
+protobuf-codegen = "3.0"
