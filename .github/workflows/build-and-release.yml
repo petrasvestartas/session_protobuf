@@ -29,7 +29,7 @@ jobs:
             artifact_path: install-win64
           
           # Linux build (compatible with most distributions)
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             platform: linux-x86_64
             script: ./build.sh
             artifact_name: protobuf-linux-x86_64
