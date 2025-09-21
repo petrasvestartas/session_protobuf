@@ -1,0 +1,156 @@
+# Build directories
+build/
+build-*/
+cmake-build-*/
+
+# Install directories (platform-specific outputs)
+install-*/
+install/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Generated makefiles and project files
+*.make
+*.vcxproj*
+*.sln
+*.suo
+*.user
+*.filters
+
+# Compiled Object files
+*.o
+*.obj
+*.lo
+*.slo
+
+# Compiled Dynamic libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.a
+*.lib
+*.la
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.pdb
+*.ilk
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
+*.sdf
+*.opensdf
+*.db
+*.opendb
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+build/
+
+# Package managers
+node_modules/
+.npm/
+.yarn/
+
+# Test artifacts
+test-config/
+test-build/
+*.test
+*.log
+
+# Act (local GitHub Actions) artifacts
+.act/
+act-*/
+
+# Protobuf generated files (if any)
+*.pb.cc
+*.pb.h
+*.pb.go
+*_pb2.py
+*_pb2_grpc.py
+
+# Archives and compressed files
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.7z
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Coverage reports
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Profiling data
+*.prof
+gmon.out
+
+# Core dumps
+core
+core.*
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Documentation build
+docs/_build/
+docs/html/
+docs/latex/
+
+# Python cache (if using Python scripts)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Rust artifacts (if any Rust tools are used)
+target/
+Cargo.lock
+
+# Go artifacts (if any Go tools are used)
+*.mod
+*.sum
+
+# Local configuration
+local.properties
+config.local.*

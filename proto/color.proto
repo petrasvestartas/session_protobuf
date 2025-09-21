@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package session_proto;
+
+// Color message - matching C++ Color class field order
+message ColorProto {
+  string name = 1;  // std::string name
+  string guid = 2;  // std::string guid  
+  uint32 r = 3;     // unsigned int r
+  uint32 g = 4;     // unsigned int g
+  uint32 b = 5;     // unsigned int b
+  uint32 a = 6;     // unsigned int a
+}

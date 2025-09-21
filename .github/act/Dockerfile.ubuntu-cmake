@@ -1,0 +1,19 @@
+# Custom Docker image for Act with CMake pre-installed
+# This speeds up local testing by having CMake already available
+
+FROM catthehacker/ubuntu:act-latest
+
+# Install CMake and build dependencies
+RUN apt-get update && apt-get install -y \
+    cmake \
+    build-essential \
+    git \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify CMake installation
+RUN cmake --version
+
+# Set working directory
+WORKDIR /github/workspace

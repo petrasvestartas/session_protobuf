@@ -1,0 +1,78 @@
+name: Test Build (Act Compatible)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ test-* ]
+
+jobs:
+  test-build-linux:
+    name: Test Build on Linux
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install build dependencies (including CMake)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake git
+
+    - name: Make build script executable
+      run: chmod +x build.sh
+
+    - name: Test CMake configuration only
+      run: |
+        echo "Testing CMake configuration..."
+        mkdir -p build
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=Release \
+          -Dprotobuf_BUILD_TESTS=OFF \
+          -Dprotobuf_BUILD_EXAMPLES=OFF \
+          -Dprotobuf_BUILD_CONFORMANCE=OFF \
+          -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+          -DBUILD_SHARED_LIBS=OFF \
+          -Dprotobuf_BUILD_PROTOBUF_BINARIES=ON \
+          -Dprotobuf_BUILD_PROTOC_BINARIES=ON \
+          -Dprotobuf_FORCE_FETCH_DEPENDENCIES=ON \
+          -Dprotobuf_WITH_ZLIB=OFF
+
+    - name: Test build script syntax
+      run: |
+        echo "Testing build script syntax..."
+        bash -n build.sh
+        echo "Build script syntax is valid!"
+
+    - name: Show build configuration
+      run: |
+        echo "Build directory contents:"
+        ls -la build/
+        echo ""
+        echo "CMake cache variables:"
+        grep -E "(protobuf_|CMAKE_)" build/CMakeCache.txt | head -20 || true
+
+    - name: Create mock install directory
+      run: |
+        echo "Creating mock install structure..."
+        mkdir -p install-linux-x86_64/{include,lib,bin}
+        echo "Mock protobuf header" > install-linux-x86_64/include/google_protobuf.h
+        echo "Mock static library" > install-linux-x86_64/lib/libprotobuf.a
+        echo "Mock protoc binary" > install-linux-x86_64/bin/protoc
+        chmod +x install-linux-x86_64/bin/protoc
+
+    - name: Test artifact creation
+      run: |
+        echo "Testing artifact creation..."
+        tar -czf protobuf-linux-x86_64.tar.gz -C install-linux-x86_64 .
+        ls -la protobuf-linux-x86_64.tar.gz
+        echo "Artifact created successfully!"
+
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: protobuf-linux-x86_64-test
+        path: protobuf-linux-x86_64.tar.gz
+        retention-days: 1

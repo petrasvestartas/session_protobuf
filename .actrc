@@ -1,0 +1,24 @@
+# Act configuration file
+# This file configures Act to run GitHub Actions locally
+
+# Use specific platform images for better compatibility
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+-P ubuntu-22.04=catthehacker/ubuntu:act-22.04
+-P ubuntu-20.04=catthehacker/ubuntu:act-20.04
+
+# For macOS testing (limited support in Act)
+-P macos-latest=catthehacker/ubuntu:act-latest
+-P macos-13=catthehacker/ubuntu:act-latest
+-P macos-14=catthehacker/ubuntu:act-latest
+
+# Windows is not well supported in Act, so we'll use Ubuntu for testing
+-P windows-latest=catthehacker/ubuntu:act-latest
+
+# Set default secrets (you can override these)
+-s GITHUB_TOKEN=dummy_token
+
+# Enable verbose output
+-v
+
+# Bind the current directory
+--bind
