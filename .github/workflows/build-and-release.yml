@@ -23,18 +23,8 @@ jobs:
             artifact_name: protobuf-win64
             artifact_path: install-win64
           
-          # Linux builds (multiple architectures/versions)
+          # Linux build (compatible with most distributions)
           - os: ubuntu-20.04
-            platform: linux-x86_64
-            script: ./build.sh
-            artifact_name: protobuf-linux-x86_64-ubuntu20
-            artifact_path: install-linux-x86_64
-          - os: ubuntu-22.04
-            platform: linux-x86_64
-            script: ./build.sh
-            artifact_name: protobuf-linux-x86_64-ubuntu22
-            artifact_path: install-linux-x86_64
-          - os: ubuntu-latest
             platform: linux-x86_64
             script: ./build.sh
             artifact_name: protobuf-linux-x86_64
@@ -145,12 +135,10 @@ jobs:
           - **Windows (x64)**: `protobuf-win64.zip`
           
           ### Linux
-          - **Ubuntu 20.04 LTS**: `protobuf-linux-x86_64-ubuntu20.tar.gz`
-          - **Ubuntu 22.04 LTS**: `protobuf-linux-x86_64-ubuntu22.tar.gz`
-          - **Ubuntu Latest**: `protobuf-linux-x86_64.tar.gz`
+          - **Linux (x86_64)**: `protobuf-linux-x86_64.tar.gz` - Compatible with most Linux distributions
           
           ### macOS
-          - **macOS Universal**: `protobuf-macos-universal.tar.gz` ⭐ *Recommended - works on both Intel and Apple Silicon*
+          - **macOS Universal**: `protobuf-macos-universal.tar.gz` ⭐ Works on both Intel and Apple Silicon
           
           Each archive contains:
           - Static libraries (`.lib` on Windows, `.a` on Unix)
