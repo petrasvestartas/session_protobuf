@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package geometry;
+
+// A 3D point for serialization
+message Point {
+  double x = 1;
+  double y = 2; 
+  double z = 3;
+}
+
+// A collection of points
+message PointCloud {
+  repeated Point points = 1;
+  string name = 2;
+  int32 point_count = 3;
+}
