@@ -36,6 +36,11 @@ jobs:
             script: ./build.sh
             artifact_name: protobuf-macos-arm64
             artifact_path: install-macos-arm64
+          - os: macos-14  # Universal Binary
+            platform: macos-universal
+            script: ./build-universal.sh
+            artifact_name: protobuf-macos-universal
+            artifact_path: install-macos-universal
 
     steps:
     - name: Checkout code
@@ -133,8 +138,9 @@ jobs:
           
           - **Windows (x64)**: `protobuf-win64.zip`
           - **Linux (x86_64)**: `protobuf-linux-x86_64.tar.gz`
-          - **macOS (Intel)**: `protobuf-macos-x86_64.tar.gz`
-          - **macOS (Apple Silicon)**: `protobuf-macos-arm64.tar.gz`
+          - **macOS (Universal)**: `protobuf-macos-universal.tar.gz` ⭐ *Recommended - works on both Intel and Apple Silicon*
+          - **macOS (Intel only)**: `protobuf-macos-x86_64.tar.gz`
+          - **macOS (Apple Silicon only)**: `protobuf-macos-arm64.tar.gz`
           
           Each archive contains:
           - Static libraries (`.lib` on Windows, `.a` on Unix)
