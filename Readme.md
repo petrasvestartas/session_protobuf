@@ -2,6 +2,8 @@
 
 This folder lets you build Protocol Buffers (C++ runtime + protoc) **once per OS** and reuse the headers and static libraries from your application build. No package managers needed after this step.
 
+**🔧 Uses Git Submodule**: This project includes the official protobuf repository as a Git submodule in the `src/` directory, ensuring you always have access to the complete and up-to-date protobuf source code.
+
 After installing, you will have a per‑platform directory like:
 
 - `macos-arm64/`
@@ -13,6 +15,16 @@ Each contains:
 - `include/` — protobuf headers
 - `lib/` — static libraries, e.g. `libprotobuf.a`, `libprotoc.a`, `libprotobuf-lite.a`, and small third‑party archives (e.g. `utf8_range`)
 - `bin/` — tools including a matching `protoc`
+
+## Prerequisites
+
+If you're cloning this repository for the first time, initialize the Git submodule:
+
+```bash
+git submodule update --init --recursive
+```
+
+This downloads the official protobuf source code into the `src/` directory.
 
 ## One‑time build per OS
 

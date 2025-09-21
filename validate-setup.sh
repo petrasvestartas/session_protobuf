@@ -73,6 +73,15 @@ check_file ".gitignore" || ((errors++))
 
 if [ -d "src" ]; then
     echo -e "✅ ${GREEN}src/${NC} directory exists"
+    # Check if it's a Git submodule
+    if [ -f ".gitmodules" ]; then
+        echo -e "✅ ${GREEN}src/${NC} is configured as Git submodule"
+        if [ -f "src/CMakeLists.txt" ]; then
+            echo -e "✅ ${GREEN}Submodule${NC} is properly initialized"
+        else
+            echo -e "⚠️ ${YELLOW}Submodule${NC} not initialized. Run: git submodule update --init --recursive"
+        fi
+    fi
 else
     echo -e "❌ ${RED}src/${NC} directory missing"
     ((errors++))
