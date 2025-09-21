@@ -33,8 +33,9 @@ fi
 # Create output directories
 mkdir -p generated/{cpp,python,rust}
 
-# Proto files to generate (Google well-known types)
-PROTO_FILES=(
+# Proto files to generate
+# 1. Google well-known types (from protobuf source)
+GOOGLE_PROTO_FILES=(
     "src/src/google/protobuf/any.proto"
     "src/src/google/protobuf/timestamp.proto"
     "src/src/google/protobuf/duration.proto"
@@ -42,6 +43,17 @@ PROTO_FILES=(
     "src/src/google/protobuf/struct.proto"
     "src/src/google/protobuf/wrappers.proto"
 )
+
+# 2. User proto files (place your .proto files in proto/user/)
+USER_PROTO_FILES=()
+if [ -d "proto/user" ]; then
+    while IFS= read -r -d '' proto; do
+        USER_PROTO_FILES+=("$proto")
+    done < <(find proto/user -name "*.proto" -print0)
+fi
+
+# Combine all proto files
+PROTO_FILES=("${GOOGLE_PROTO_FILES[@]}" "${USER_PROTO_FILES[@]}")
 
 echo ""
 echo "📁 Proto files to process:"
@@ -55,10 +67,24 @@ done
 
 echo ""
 echo "🔨 Generating C++ bindings..."
-for proto in "${PROTO_FILES[@]}"; do
+
+# Generate Google well-known types
+for proto in "${GOOGLE_PROTO_FILES[@]}"; do
     if [ -f "$proto" ]; then
-        echo "  Processing $(basename "$proto")..."
+        echo "  Processing $(basename "$proto") (Google)..."
         "$PROTOC_PATH" \
+            --proto_path=src/src \
+            --cpp_out=generated/cpp \
+            "$proto"
+    fi
+done
+
+# Generate user proto files
+for proto in "${USER_PROTO_FILES[@]}"; do
+    if [ -f "$proto" ]; then
+        echo "  Processing $(basename "$proto") (User)..."
+        "$PROTOC_PATH" \
+            --proto_path=proto \
             --proto_path=src/src \
             --cpp_out=generated/cpp \
             "$proto"
@@ -67,10 +93,24 @@ done
 
 echo ""
 echo "🐍 Generating Python bindings..."
-for proto in "${PROTO_FILES[@]}"; do
+
+# Generate Google well-known types
+for proto in "${GOOGLE_PROTO_FILES[@]}"; do
     if [ -f "$proto" ]; then
-        echo "  Processing $(basename "$proto")..."
+        echo "  Processing $(basename "$proto") (Google)..."
         "$PROTOC_PATH" \
+            --proto_path=src/src \
+            --python_out=generated/python \
+            "$proto"
+    fi
+done
+
+# Generate user proto files
+for proto in "${USER_PROTO_FILES[@]}"; do
+    if [ -f "$proto" ]; then
+        echo "  Processing $(basename "$proto") (User)..."
+        "$PROTOC_PATH" \
+            --proto_path=proto \
             --proto_path=src/src \
             --python_out=generated/python \
             "$proto"
@@ -152,14 +192,19 @@ echo "  ✅ rust-bindings.tar.gz created"
 cd ..
 
 echo ""
-echo "✅ Language bindings generated successfully!"
+echo "✅ Language-specific serialization code generated successfully!"
 echo ""
-echo "📋 Generated files:"
-echo "  - cpp-bindings.tar.gz    (C++ .h and .cc files)"
-echo "  - python-bindings.tar.gz (Python _pb2.py files)"
-echo "  - rust-bindings.tar.gz   (Rust crate template)"
+echo "📋 Generated archives:"
+echo "  - cpp-bindings.tar.gz    → Contains .pb.h/.pb.cc files for serialization"
+echo "  - python-bindings.tar.gz → Contains _pb2.py modules for serialization"  
+echo "  - rust-bindings.tar.gz   → Contains Rust crate for serialization"
 echo ""
-echo "💡 Usage:"
-echo "  C++:    Extract and include .h files, compile .cc files"
-echo "  Python: Extract and import the _pb2.py modules"
-echo "  Rust:   Extract and use as a Cargo crate"
+echo "🎯 What you get:"
+echo "  • Self-contained serialization code (no external protobuf dependency needed)"
+echo "  • Ready-to-include files for your applications"
+echo "  • Cross-platform binary serialization"
+echo ""
+echo "💡 Usage in your applications:"
+echo "  C++:    #include \"your_proto.pb.h\" and compile your_proto.pb.cc"
+echo "  Python: import your_proto_pb2 (no pip install protobuf needed)"
+echo "  Rust:   Add as dependency (no external protobuf crate needed)"
