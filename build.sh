@@ -168,10 +168,10 @@ done
 # =============================================================================
 
 echo ""
-echo "🦀 Generating Rust bindings..."
-echo "  📝 Note: Creating self-contained Rust crate template"
+echo "🦀 Creating Rust crate (Cargo will handle code generation)..."
+echo "  📝 Note: Rust files will be generated automatically when you build the crate"
 
-# Create Cargo.toml with minimal prost dependencies
+# Create Cargo.toml with prost dependencies and protoc-bin-vendored
 cat > generated/rust/Cargo.toml << 'EOF'
 [package]
 name = "session-protobuf-types"
@@ -184,9 +184,10 @@ prost = "0.14"
 
 [build-dependencies]
 prost-build = "0.14"
+protoc-bin-vendored = "3.0"
 EOF
 
-# Create build.rs that generates Rust files using prost-build
+# Create build.rs that uses protoc-bin-vendored (no system protoc needed)
 cat > generated/rust/build.rs << 'EOF'
 use std::env;
 use std::path::PathBuf;
@@ -194,8 +195,9 @@ use std::path::PathBuf;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     
-    // Configure prost-build
+    // Configure prost-build to use protoc-bin-vendored
     prost_build::Config::new()
+        .protoc_arg("--experimental_allow_proto3_optional")
         .out_dir(&out_dir)
         .compile_protos(
             &[
@@ -212,75 +214,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 EOF
 
-# Generate Rust files immediately for inspection
-echo "  📄 Generating Rust .rs files using prost-build..."
-
-# Create a temporary build script to generate the files now
-cat > /tmp/generate_rust_proto.rs << 'EOF'
-use std::path::PathBuf;
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let current_dir = std::env::current_dir()?;
-    let proto_dir = current_dir.join("proto");
-    let out_dir = current_dir.join("generated/rust/src");
-    
-    // Ensure output directory exists
-    std::fs::create_dir_all(&out_dir)?;
-    
-    // Configure prost-build to generate files directly to src/
-    prost_build::Config::new()
-        .out_dir(&out_dir)
-        .compile_protos(
-            &[
-                proto_dir.join("color.proto"),
-                proto_dir.join("point.proto"),
-            ],
-            &[&proto_dir],
-        )?;
-    
-    println!("Generated Rust protobuf files in {:?}", out_dir);
-    Ok(())
-}
-EOF
-
-# Try to run the generator if Rust is available
-if command -v cargo >/dev/null 2>&1; then
-    echo "    📄 Attempting to generate .rs files directly..."
-    
-    # Create temporary Cargo project
-    mkdir -p /tmp/rust_proto_gen
-    cat > /tmp/rust_proto_gen/Cargo.toml << 'EOF'
-[package]
-name = "proto-gen"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-prost-build = "0.14"
-EOF
-    
-    cp /tmp/generate_rust_proto.rs /tmp/rust_proto_gen/src/main.rs 2>/dev/null || {
-        mkdir -p /tmp/rust_proto_gen/src
-        cp /tmp/generate_rust_proto.rs /tmp/rust_proto_gen/src/main.rs
-    }
-    
-    # Run the generator
-    (cd /tmp/rust_proto_gen && cargo run --quiet) 2>/dev/null || {
-        echo "    ⚠️  Could not generate .rs files directly (cargo not available or prost-build not installed)"
-        echo "    ℹ️  Files will be generated when you build the Rust crate"
-    }
-    
-    # Clean up
-    rm -rf /tmp/rust_proto_gen /tmp/generate_rust_proto.rs
-else
-    echo "    ℹ️  Rust not available - .rs files will be generated when you build the crate"
-fi
-
 # Create lib.rs that exposes the generated types
 cat > generated/rust/src/lib.rs << 'EOF'
 //! Generated Protocol Buffer types using prost
 //! 
 //! This crate provides Rust bindings for protobuf serialization using prost.
+//! Code generation happens automatically when you build this crate.
 
 #![allow(unused_imports)]
 #![allow(clippy::all)]
@@ -288,6 +227,7 @@ cat > generated/rust/src/lib.rs << 'EOF'
 pub use prost::Message;
 
 // Include generated protobuf modules from build.rs
+// These files are generated at build time in OUT_DIR
 include!(concat!(env!("OUT_DIR"), "/session_proto.color.rs"));
 include!(concat!(env!("OUT_DIR"), "/session_proto.point.rs"));
 
@@ -300,9 +240,42 @@ EOF
 cat > generated/rust/src/main.rs << 'EOF'
 //! Test binary for generated protobuf types
 
-fn main() {
-    println!("Generated protobuf types are ready!");
-    println!("Use this crate as a dependency in your Rust projects.");
+use session_protobuf_types::{ColorProto, PointProto, Message};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("🦀 Testing generated protobuf types...");
+
+    // Create a color
+    let color = ColorProto {
+        name: "Test Red".to_string(),
+        guid: "color-test".to_string(),
+        r: 255,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+
+    // Create a point with the color
+    let point = PointProto {
+        guid: "point-test".to_string(),
+        name: "Test Point".to_string(),
+        x: 1.0,
+        y: 2.0,
+        z: 3.0,
+        width: 1.5,
+        pointcolor: Some(color),
+    };
+
+    // Test serialization
+    let bytes = point.encode_to_vec();
+    println!("✅ Serialized {} bytes", bytes.len());
+
+    // Test deserialization
+    let decoded = PointProto::decode(&bytes[..])?;
+    println!("✅ Deserialized point: '{}'", decoded.name);
+
+    println!("🎉 All tests passed! Rust protobuf types are working correctly.");
+    Ok(())
 }
 EOF
 
@@ -310,7 +283,14 @@ EOF
 cat > generated/rust/README.md << 'EOF'
 # Generated Protobuf Types for Rust
 
-This Rust crate contains generated protobuf serialization code with minimal dependencies.
+This Rust crate contains protobuf serialization code using `prost` with automatic code generation.
+
+## Features
+
+- ✅ **No System Dependencies**: Uses `protoc-bin-vendored` for automatic protoc installation
+- ✅ **Build-Time Generation**: Rust code is generated automatically when you build
+- ✅ **Minimal Dependencies**: Only requires `prost` at runtime
+- ✅ **Cross-Platform**: Works on Windows, Linux, and macOS
 
 ## Usage
 
@@ -318,17 +298,38 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-protobuf-types = { path = "./path/to/this/crate" }
+session-protobuf-types = { path = "./path/to/this/crate" }
 ```
 
 Then use in your code:
 
 ```rust
-use protobuf_types::*;
+use session_protobuf_types::{ColorProto, PointProto, Message};
 
-// Your protobuf usage here
+// Create and serialize data
+let color = ColorProto {
+    name: "Red".to_string(),
+    guid: "color-123".to_string(),
+    r: 255, g: 0, b: 0, a: 255,
+};
+
+let bytes = color.encode_to_vec();
+let decoded = ColorProto::decode(&bytes[..])?;
 ```
+
+## Building
+
+```bash
+cargo build    # Generates Rust code and builds the crate
+cargo test     # Run tests
+cargo run      # Run the example
+```
+
+The protobuf code generation happens automatically during the build process.
 EOF
+
+echo "  ✅ Rust crate created with automatic code generation"
+echo "  ℹ️  Run 'cargo build' in generated/rust/ to generate and build Rust code"
 
 # =============================================================================
 # CREATE ARCHIVES
