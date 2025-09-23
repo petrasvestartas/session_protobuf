@@ -180,82 +180,65 @@ echo.
 echo 🦀 Generating Rust bindings...
 echo   📝 Note: Creating self-contained Rust crate template
 
-REM Create Cargo.toml
+REM Create Cargo.toml with minimal prost dependencies
 (
 echo [package]
-echo name = "protobuf-types"
+echo name = "session-protobuf-types"
 echo version = "0.1.0"
 echo edition = "2021"
-echo description = "Generated protobuf types with minimal dependencies"
+echo description = "Generated protobuf types using prost"
 echo.
 echo [dependencies]
-echo protobuf = "3.4"
+echo prost = "0.14"
 echo.
 echo [build-dependencies]
-echo protobuf-codegen = "3.4"
-echo.
-echo [[bin]]
-echo name = "generate"
-echo path = "src/main.rs"
-echo required-features = []
+echo prost-build = "0.14"
 ) > generated\rust\Cargo.toml
 
-REM Create build.rs for Rust code generation
+REM Create build.rs for Rust code generation using prost-build
 (
-echo use protobuf_codegen::Codegen;
-echo use std::path::Path;
+echo use std::env;
+echo use std::path::PathBuf;
 echo.
-echo fn main() {
-echo     println!("cargo:rerun-if-changed=proto/"^);
+echo fn main() -^> Result^<()^, Box^<dyn std::error::Error^>^> {
+echo     let out_dir = PathBuf::from(env::var("OUT_DIR"^).unwrap()^);
 echo     
-echo     let mut codegen = Codegen::new()
-echo         .pure()
-echo         .cargo_out_dir("protos"^);
-echo.
-echo     // Main proto files
-) > generated\rust\build.rs
-
-REM Add main proto files to build script
-if exist proto\color.proto (
-    echo     codegen = codegen.input("../../proto/color.proto"^); >> generated\rust\build.rs
-)
-if exist proto\point.proto (
-    echo     codegen = codegen.input("../../proto/point.proto"^); >> generated\rust\build.rs
-)
-
-REM Add user proto files if they exist
-if exist proto\user (
-    echo     // User proto files >> generated\rust\build.rs
-    for %%f in (proto\user\*.proto) do (
-        echo     codegen = codegen.input("../../%%f"^); >> generated\rust\build.rs
-    )
-)
-
-REM Complete build.rs
-(
-echo.
-echo     codegen
-echo         .include("../../%INSTALL_DIR%/include"^)
-echo         .include("../../proto"^)
-echo         .run_from_script();
+echo     // Configure prost-build
+echo     prost_build::Config::new()
+echo         .out_dir(^&out_dir^)
+echo         .compile_protos(
+echo             ^&[
+echo                 "../../proto/color.proto",
+echo                 "../../proto/point.proto",
+echo             ],
+echo             ^&[
+echo                 "../../proto/",
+echo             ],
+echo         ^)?;
+echo     
+echo     println!("cargo:rerun-if-changed=../../proto/"^);
+echo     Ok(()^)
 echo }
-) >> generated\rust\build.rs
+) > generated\rust\build.rs
 
 REM Create lib.rs
 (
-echo //! Generated Protocol Buffer types
+echo //! Generated Protocol Buffer types using prost
 echo //! 
-echo //! This crate provides Rust bindings for protobuf serialization.
-echo //! The protobuf dependency is minimal (runtime only^).
+echo //! This crate provides Rust bindings for protobuf serialization using prost.
 echo.
 echo #![allow(unused_imports^)]
 echo #![allow(clippy::all^)]
 echo.
-echo // Include generated protobuf modules
-echo include!(concat!(env!("OUT_DIR"^), "/protos/mod.rs"^)^);
+echo pub use prost::Message;
 echo.
-echo // Re-export commonly used types
-echo pub use protobuf::*;
+echo // Include generated protobuf modules from build.rs
+echo include!(concat!(env!("OUT_DIR"^), "/session_proto.color.rs"^)^);
+echo include!(concat!(env!("OUT_DIR"^), "/session_proto.point.rs"^)^);
+echo.
+echo // Re-export the main types for convenience
+echo pub use color_proto::ColorProto;
+echo pub use point_proto::PointProto;
 ) > generated\rust\src\lib.rs
 
 REM Create main.rs for testing

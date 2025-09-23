@@ -1,19 +1,22 @@
-use protobuf_codegen::Codegen;
-use std::path::Path;
+use std::env;
+use std::path::PathBuf;
 
-fn main() {
-    println!("cargo:rerun-if-changed=proto/");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     
-    let mut codegen = Codegen::new()
-        .pure()
-        .cargo_out_dir("protos");
-
-    // Main proto files
-    codegen = codegen.input("../../proto/color.proto");
-    codegen = codegen.input("../../proto/point.proto");
-
-    codegen
-        .include("../../install-linux-x86_64/include")
-        .include("../../proto")
-        .run_from_script();
+    // Configure prost-build
+    prost_build::Config::new()
+        .out_dir(&out_dir)
+        .compile_protos(
+            &[
+                "../../proto/color.proto",
+                "../../proto/point.proto",
+            ],
+            &[
+                "../../proto/",
+            ],
+        )?;
+    
+    println!("cargo:rerun-if-changed=../../proto/");
+    Ok(())
 }

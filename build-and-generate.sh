@@ -171,82 +171,129 @@ echo ""
 echo "🦀 Generating Rust bindings..."
 echo "  📝 Note: Creating self-contained Rust crate template"
 
-# Create Cargo.toml with minimal protobuf dependency
+# Create Cargo.toml with minimal prost dependencies
 cat > generated/rust/Cargo.toml << 'EOF'
 [package]
-name = "protobuf-types"
+name = "session-protobuf-types"
 version = "0.1.0"
 edition = "2021"
-description = "Generated protobuf types with minimal dependencies"
+description = "Generated protobuf types using prost"
 
 [dependencies]
-protobuf = "3.4"
+prost = "0.14"
 
 [build-dependencies]
-protobuf-codegen = "3.4"
-
-[[bin]]
-name = "generate"
-path = "src/main.rs"
-required-features = []
+prost-build = "0.14"
 EOF
 
-# Create build.rs for Rust code generation
+# Create build.rs that generates Rust files using prost-build
 cat > generated/rust/build.rs << 'EOF'
-use protobuf_codegen::Codegen;
-use std::path::Path;
+use std::env;
+use std::path::PathBuf;
 
-fn main() {
-    println!("cargo:rerun-if-changed=proto/");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     
-    let mut codegen = Codegen::new()
-        .pure()
-        .cargo_out_dir("protos");
-
-EOF
-
-# Add main proto files to build script
-echo "    // Main proto files" >> generated/rust/build.rs
-for proto in "${MAIN_PROTO_FILES[@]}"; do
-    if [ -f "$proto" ]; then
-        echo "    codegen = codegen.input(\"../../$proto\");" >> generated/rust/build.rs
-    fi
-done
-
-# Add user proto files to build script
-if [ ${#USER_PROTO_FILES[@]} -gt 0 ]; then
-    echo "    // User proto files" >> generated/rust/build.rs
-    for proto in "${USER_PROTO_FILES[@]}"; do
-        if [ -f "$proto" ]; then
-            echo "    codegen = codegen.input(\"../../$proto\");" >> generated/rust/build.rs
-        fi
-    done
-fi
-
-cat >> generated/rust/build.rs << EOF
-
-    codegen
-        .include("../../$INSTALL_DIR/include")
-        .include("../../proto")
-        .run_from_script();
+    // Configure prost-build
+    prost_build::Config::new()
+        .out_dir(&out_dir)
+        .compile_protos(
+            &[
+                "../../proto/color.proto",
+                "../../proto/point.proto",
+            ],
+            &[
+                "../../proto/",
+            ],
+        )?;
+    
+    println!("cargo:rerun-if-changed=../../proto/");
+    Ok(())
 }
 EOF
 
+# Generate Rust files immediately for inspection
+echo "  📄 Generating Rust .rs files using prost-build..."
+
+# Create a temporary build script to generate the files now
+cat > /tmp/generate_rust_proto.rs << 'EOF'
+use std::path::PathBuf;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let current_dir = std::env::current_dir()?;
+    let proto_dir = current_dir.join("proto");
+    let out_dir = current_dir.join("generated/rust/src");
+    
+    // Ensure output directory exists
+    std::fs::create_dir_all(&out_dir)?;
+    
+    // Configure prost-build to generate files directly to src/
+    prost_build::Config::new()
+        .out_dir(&out_dir)
+        .compile_protos(
+            &[
+                proto_dir.join("color.proto"),
+                proto_dir.join("point.proto"),
+            ],
+            &[&proto_dir],
+        )?;
+    
+    println!("Generated Rust protobuf files in {:?}", out_dir);
+    Ok(())
+}
+EOF
+
+# Try to run the generator if Rust is available
+if command -v cargo >/dev/null 2>&1; then
+    echo "    📄 Attempting to generate .rs files directly..."
+    
+    # Create temporary Cargo project
+    mkdir -p /tmp/rust_proto_gen
+    cat > /tmp/rust_proto_gen/Cargo.toml << 'EOF'
+[package]
+name = "proto-gen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+prost-build = "0.14"
+EOF
+    
+    cp /tmp/generate_rust_proto.rs /tmp/rust_proto_gen/src/main.rs 2>/dev/null || {
+        mkdir -p /tmp/rust_proto_gen/src
+        cp /tmp/generate_rust_proto.rs /tmp/rust_proto_gen/src/main.rs
+    }
+    
+    # Run the generator
+    (cd /tmp/rust_proto_gen && cargo run --quiet) 2>/dev/null || {
+        echo "    ⚠️  Could not generate .rs files directly (cargo not available or prost-build not installed)"
+        echo "    ℹ️  Files will be generated when you build the Rust crate"
+    }
+    
+    # Clean up
+    rm -rf /tmp/rust_proto_gen /tmp/generate_rust_proto.rs
+else
+    echo "    ℹ️  Rust not available - .rs files will be generated when you build the crate"
+fi
+
 # Create lib.rs that exposes the generated types
 cat > generated/rust/src/lib.rs << 'EOF'
-//! Generated Protocol Buffer types
+//! Generated Protocol Buffer types using prost
 //! 
-//! This crate provides Rust bindings for protobuf serialization.
-//! The protobuf dependency is minimal (runtime only).
+//! This crate provides Rust bindings for protobuf serialization using prost.
 
 #![allow(unused_imports)]
 #![allow(clippy::all)]
 
-// Include generated protobuf modules
-include!(concat!(env!("OUT_DIR"), "/protos/mod.rs"));
+pub use prost::Message;
 
-// Re-export commonly used types
-pub use protobuf::*;
+// Include generated protobuf modules from build.rs
+include!(concat!(env!("OUT_DIR"), "/session_proto.color.rs"));
+include!(concat!(env!("OUT_DIR"), "/session_proto.point.rs"));
+
+// Re-export the main types for convenience
+pub use color_proto::ColorProto;
+pub use point_proto::PointProto;
 EOF
 
 # Create main.rs for testing

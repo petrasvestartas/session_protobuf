@@ -1,16 +1,11 @@
 [package]
-name = "protobuf-types"
+name = "session-protobuf-types"
 version = "0.1.0"
 edition = "2021"
-description = "Generated protobuf types with minimal dependencies"
+description = "Generated protobuf types using prost"
 
 [dependencies]
-protobuf = "3.4"
+prost = "0.14"
 
 [build-dependencies]
-protobuf-codegen = "3.4"
-
-[[bin]]
-name = "generate"
-path = "src/main.rs"
-required-features = []
+prost-build = "0.14"
