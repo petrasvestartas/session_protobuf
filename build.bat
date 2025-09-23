@@ -1,24 +1,25 @@
 @echo off
-REM Rust-only build script for Windows
-REM This script generates Rust bindings using prost with automatic protoc handling
+REM Windows Rust-only build script based on build.sh
+REM This script generates only Rust bindings using prost with protoc-bin-vendored
 
 echo 🚀 Starting Rust-only protobuf build for Windows...
 
-echo 📋 Platform: Windows x64 (Rust-only)
-echo 💡 Note: Protoc will be handled automatically by Cargo (protoc-bin-vendored)
+echo 📋 Platform: Windows (Rust-only - no protoc binary needed)
 
 REM =============================================================================
-REM RUST BINDINGS (AUTOMATIC PROTOC HANDLING)
+REM RUST BINDINGS (Based on working build.sh)
 REM =============================================================================
 
 echo.
-echo 🦀 Creating Rust crate with automatic protoc handling...
+echo 🦀 Creating Rust crate (Cargo will handle code generation)...
+echo   📝 Note: Rust files will be generated automatically when you build the crate
 
 REM Create output directories
 if not exist generated mkdir generated
 if not exist generated\rust mkdir generated\rust
 if not exist generated\rust\src mkdir generated\rust\src
 
+REM Proto files to generate (same as build.sh)
 echo.
 echo 📁 Proto files to process:
 if exist proto\color.proto (
@@ -32,11 +33,7 @@ if exist proto\point.proto (
     echo   ❌ proto\point.proto (not found)
 )
 
-echo.
-echo 🦀 Creating Rust crate (Cargo will handle code generation^)...
-echo   📝 Note: Rust files will be generated automatically when you build the crate
-
-REM Create Cargo.toml with prost dependencies and protoc-bin-vendored
+REM Create Cargo.toml with prost dependencies and protoc-bin-vendored (same as build.sh)
 (
 echo [package]
 echo name = "session-protobuf-types"
@@ -52,7 +49,7 @@ echo prost-build = "0.14"
 echo protoc-bin-vendored = "3.0"
 ) > generated\rust\Cargo.toml
 
-REM Create build.rs that uses protoc-bin-vendored (no system protoc needed^)
+REM Create build.rs that uses protoc-bin-vendored (same as build.sh)
 (
 echo use std::env;
 echo use std::path::PathBuf;
@@ -79,7 +76,7 @@ echo     Ok(()^)
 echo }
 ) > generated\rust\build.rs
 
-REM Create lib.rs
+REM Create lib.rs that exposes the generated types (same as build.sh)
 (
 echo //! Generated Protocol Buffer types using prost
 echo //! 
@@ -101,7 +98,7 @@ echo pub use color_proto::ColorProto;
 echo pub use point_proto::PointProto;
 ) > generated\rust\src\lib.rs
 
-REM Create main.rs for testing
+REM Create main.rs for testing (same as build.sh)
 (
 echo //! Test binary for generated protobuf types
 echo.
@@ -144,7 +141,7 @@ echo     Ok(()^)
 echo }
 ) > generated\rust\src\main.rs
 
-REM Create README
+REM Create README for the Rust crate (same as build.sh)
 (
 echo # Generated Protobuf Types for Rust
 echo.
@@ -197,25 +194,18 @@ echo   ✅ Rust crate created with automatic code generation
 echo   ℹ️  Run 'cargo build' in generated/rust/ to generate and build Rust code
 
 REM =============================================================================
-REM CREATE ARCHIVES
+REM CREATE ARCHIVES (same as build.sh)
 REM =============================================================================
 
 echo.
 echo 📦 Creating archives...
 
-REM Create Rust archive using tar (available in Windows 10+) or PowerShell
-where tar >nul 2>nul
-if %ERRORLEVEL% equ 0 (
-    REM Use tar if available
-    cd generated
-    tar -czf ..\rust-bindings.tar.gz rust\
-    cd ..
-    echo   ✅ rust-bindings.tar.gz created
-) else (
-    REM Use PowerShell compression as fallback
-    powershell -Command "Compress-Archive -Path 'generated\rust\*' -DestinationPath 'rust-bindings.zip' -Force"
-    echo   ✅ rust-bindings.zip created
-)
+REM Create archives (same as build.sh approach)
+cd generated
+tar -czf ..\rust-bindings.tar.gz rust\
+cd ..
+
+echo   ✅ rust-bindings.tar.gz created
 
 REM =============================================================================
 REM SUCCESS MESSAGE
@@ -225,7 +215,7 @@ echo.
 echo 🎉 Rust-only build completed successfully!
 echo.
 echo 📋 Generated archive:
-echo   - rust-bindings.*    → Contains Rust crate for serialization
+echo   - rust-bindings.tar.gz → Contains Rust crate for serialization
 echo.
 echo 🎯 What you get:
 echo   • Self-contained Rust crate (no external protobuf dependency needed)
@@ -237,5 +227,3 @@ echo   Add as dependency: session-protobuf-types = { path = "./path/to/crate" }
 echo   Import and use: use session_protobuf_types::{ColorProto, PointProto, Message};
 echo.
 echo ✨ All done! Your Rust protobuf bindings are ready to use.
-
-pause
