@@ -8,19 +8,12 @@ fn main() {
         .pure()
         .cargo_out_dir("protos");
 
-    // Google well-known types
-    codegen = codegen.input("../../src/src/google/protobuf/any.proto");
-    codegen = codegen.input("../../src/src/google/protobuf/timestamp.proto");
-    codegen = codegen.input("../../src/src/google/protobuf/duration.proto");
-    codegen = codegen.input("../../src/src/google/protobuf/empty.proto");
-    codegen = codegen.input("../../src/src/google/protobuf/struct.proto");
-    codegen = codegen.input("../../src/src/google/protobuf/wrappers.proto");
-    // User proto files
-    codegen = codegen.input("../../proto/user/point.proto");
-    codegen = codegen.input("../../proto/user/color.proto");
+    // Main proto files
+    codegen = codegen.input("../../proto/color.proto");
+    codegen = codegen.input("../../proto/point.proto");
 
     codegen
-        .include("../../src/src")
+        .include("../../install-linux-x86_64/include")
         .include("../../proto")
         .run_from_script();
 }

@@ -5,8 +5,12 @@ edition = "2021"
 description = "Generated protobuf types with minimal dependencies"
 
 [dependencies]
-# Minimal protobuf runtime (much smaller than full protobuf crate)
-protobuf = { version = "3.0", default-features = false }
+protobuf = "3.4"
 
 [build-dependencies]
-protobuf-codegen = "3.0"
+protobuf-codegen = "3.4"
+
+[[bin]]
+name = "generate"
+path = "src/main.rs"
+required-features = []
