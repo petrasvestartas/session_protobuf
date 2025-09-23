@@ -24,7 +24,7 @@ jobs:
           # Windows build (Rust-only due to protoc setup complexity)
           - os: windows-latest
             platform: win64
-            script: .\build-rust-only.bat
+            script: .\build.bat
             artifact_name: rust-protobuf-win64
           
           # Linux build (compatible with most distributions)
