@@ -26,86 +26,44 @@ jobs:
             platform: win64
             script: .\build.bat
             artifact_name: protobuf-win64
-            artifact_path: install-win64
           
           # Linux build (compatible with most distributions)
           - os: ubuntu-latest
             platform: linux-x86_64
             script: ./build.sh
             artifact_name: protobuf-linux-x86_64
-            artifact_path: install-linux-x86_64
           
           # macOS Universal build (works on both Intel and Apple Silicon)
           - os: macos-14
             platform: macos-universal
-            script: ./build-universal.sh
+            script: ./build.sh
             artifact_name: protobuf-macos-universal
-            artifact_path: install-macos-universal
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Set up CMake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.22'
-
-    - name: Set up MSVC (Windows only)
-      if: runner.os == 'Windows'
-      uses: microsoft/setup-msbuild@v2
-
-    - name: Install build dependencies (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential
-
-    - name: Install build dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        # Ensure Xcode command line tools are available
-        xcode-select --install || true
 
     - name: Make build script executable (Unix)
       if: runner.os != 'Windows'
       run: chmod +x build.sh
 
-    - name: Build protobuf (Windows)
+    - name: Run build and generate (Windows)
       if: runner.os == 'Windows'
       run: ${{ matrix.script }}
       shell: cmd
 
-    - name: Build protobuf (Unix)
+    - name: Run build and generate (Unix)
       if: runner.os != 'Windows'
       run: ${{ matrix.script }}
       shell: bash
-
-    - name: Generate language bindings (Linux only)
-      if: matrix.platform == 'linux-x86_64'
-      run: |
-        chmod +x generate-bindings.sh
-        ./generate-bindings.sh
-
-    - name: Create archive
-      shell: bash
-      run: |
-        if [ "${{ runner.os }}" = "Windows" ]; then
-          7z a ${{ matrix.artifact_name }}.zip ${{ matrix.artifact_path }}/*
-        else
-          tar -czf ${{ matrix.artifact_name }}.tar.gz -C ${{ matrix.artifact_path }} .
-        fi
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
         path: |
-          ${{ matrix.artifact_name }}.zip
-          ${{ matrix.artifact_name }}.tar.gz
-          *-bindings.tar.gz
+          *.zip
+          *.tar.gz
         retention-days: 30
 
   release:

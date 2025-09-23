@@ -13,66 +13,74 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Install build dependencies (including CMake)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake git
 
     - name: Make build script executable
       run: chmod +x build.sh
-
-    - name: Test CMake configuration only
-      run: |
-        echo "Testing CMake configuration..."
-        mkdir -p build
-        cmake -S . -B build \
-          -DCMAKE_BUILD_TYPE=Release \
-          -Dprotobuf_BUILD_TESTS=OFF \
-          -Dprotobuf_BUILD_EXAMPLES=OFF \
-          -Dprotobuf_BUILD_CONFORMANCE=OFF \
-          -Dprotobuf_BUILD_SHARED_LIBS=OFF \
-          -DBUILD_SHARED_LIBS=OFF \
-          -Dprotobuf_BUILD_PROTOBUF_BINARIES=ON \
-          -Dprotobuf_BUILD_PROTOC_BINARIES=ON \
-          -Dprotobuf_FORCE_FETCH_DEPENDENCIES=ON \
-          -Dprotobuf_WITH_ZLIB=OFF
 
     - name: Test build script syntax
       run: |
         echo "Testing build script syntax..."
         bash -n build.sh
-        echo "Build script syntax is valid!"
+        echo "✅ Build script syntax is valid!"
 
-    - name: Show build configuration
+    - name: Check protoc binaries
       run: |
-        echo "Build directory contents:"
-        ls -la build/
-        echo ""
-        echo "CMake cache variables:"
-        grep -E "(protobuf_|CMAKE_)" build/CMakeCache.txt | head -20 || true
+        echo "=== Available protoc binaries ==="
+        ls -la protoc-* || echo "No protoc directories found"
+        
+        # Check if Linux protoc exists and is executable
+        if [ -f "protoc-32.1-linux-x86_64/bin/protoc" ]; then
+          echo "✅ Linux protoc binary found"
+          ls -la protoc-32.1-linux-x86_64/bin/protoc
+          echo "Testing protoc version:"
+          ./protoc-32.1-linux-x86_64/bin/protoc --version || echo "Could not run protoc"
+        else
+          echo "❌ Linux protoc binary not found"
+        fi
 
-    - name: Create mock install directory
+    - name: Check proto files
       run: |
-        echo "Creating mock install structure..."
-        mkdir -p install-linux-x86_64/{include,lib,bin}
-        echo "Mock protobuf header" > install-linux-x86_64/include/google_protobuf.h
-        echo "Mock static library" > install-linux-x86_64/lib/libprotobuf.a
-        echo "Mock protoc binary" > install-linux-x86_64/bin/protoc
-        chmod +x install-linux-x86_64/bin/protoc
+        echo "=== Proto Files ==="
+        if [ -d "proto" ]; then
+          find proto -name "*.proto" -type f
+          echo ""
+          echo "Proto file contents:"
+          for proto in proto/*.proto; do
+            if [ -f "$proto" ]; then
+              echo "--- $proto ---"
+              head -10 "$proto"
+              echo ""
+            fi
+          done
+        else
+          echo "No proto directory found"
+        fi
 
-    - name: Test artifact creation
+    - name: Run build script
       run: |
-        echo "Testing artifact creation..."
-        tar -czf protobuf-linux-x86_64.tar.gz -C install-linux-x86_64 .
-        ls -la protobuf-linux-x86_64.tar.gz
-        echo "Artifact created successfully!"
+        echo "Running build script..."
+        ./build.sh
+
+    - name: Verify generated files
+      run: |
+        echo "=== Generated Files ==="
+        echo "C++ files:"
+        find generated/cpp -name "*.pb.*" -type f 2>/dev/null || echo "No C++ files generated"
+        
+        echo "Python files:"
+        find generated/python -name "*_pb2.py" -type f 2>/dev/null || echo "No Python files generated"
+        
+        echo "Rust files:"
+        ls -la generated/rust/ 2>/dev/null || echo "No Rust directory found"
+        
+        echo "Archives:"
+        ls -la *.tar.gz 2>/dev/null || echo "No archives found"
 
     - name: Upload test artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: protobuf-linux-x86_64-test
-        path: protobuf-linux-x86_64.tar.gz
+        name: protobuf-test-artifacts
+        path: |
+          *.tar.gz
+          generated/
         retention-days: 1
