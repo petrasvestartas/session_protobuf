@@ -21,11 +21,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Windows build
+          # Windows build (Rust-only due to protoc setup complexity)
           - os: windows-latest
             platform: win64
-            script: .\build.bat
-            artifact_name: protobuf-win64
+            script: .\build-rust-only.bat
+            artifact_name: rust-protobuf-win64
           
           # Linux build (compatible with most distributions)
           - os: ubuntu-latest
@@ -42,6 +42,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Setup Rust (Windows only - for Rust-only build)
+      if: runner.os == 'Windows'
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
 
     - name: Make build script executable (Unix)
       if: runner.os != 'Windows'
@@ -108,9 +114,9 @@ jobs:
           This release contains pre-built protobuf libraries and headers for multiple platforms:
           
           ### Platform Binaries
-          - **Windows (x64)**: `protobuf-win64.zip`
-          - **Linux (x86_64)**: `protobuf-linux-x86_64.tar.gz` - Compatible with most Linux distributions
-          - **macOS Universal**: `protobuf-macos-universal.tar.gz` ⭐ Works on both Intel and Apple Silicon
+          - **Windows (x64)**: `rust-protobuf-win64.zip` - Rust-only bindings (self-contained)
+          - **Linux (x86_64)**: `protobuf-linux-x86_64.tar.gz` - All languages (C++, Python, Rust)
+          - **macOS Universal**: `protobuf-macos-universal.tar.gz` - All languages ⭐ Intel & Apple Silicon
           
           ### Language Bindings (Ready-to-Use Code)
           - **C++ Bindings**: `cpp-bindings.tar.gz` - Pre-generated .h and .cc files
@@ -125,17 +131,20 @@ jobs:
           
           ## Usage
           
-          ### For Building Applications
-          1. Download the platform binary (protobuf-*.zip/tar.gz)
-          2. Extract to your project directory
-          3. Link against the static libraries in your build system
-          4. Include the header files in your C++ code
+          ### Windows (Rust-only)
+          1. Download `rust-protobuf-win64.zip`
+          2. Extract and add to your `Cargo.toml`:
+             ```toml
+             [dependencies]
+             session-protobuf-types = { path = "./path/to/crate" }
+             ```
+          3. Use: `use session_protobuf_types::{ColorProto, PointProto, Message};`
           
-          ### For Language Bindings (Avoid 3rd Party Dependencies)
-          1. Download the language-specific bindings archive
+          ### Linux/macOS (All Languages)
+          1. Download the platform archive (protobuf-*.tar.gz)
           2. **C++**: Include .h files, compile .cc files with your project
           3. **Python**: Import the _pb2.py modules directly
-          4. **Rust**: Use as a Cargo crate dependency
+          4. **Rust**: Use the included Rust crate as dependency
           
           ⭐ **No external protobuf library needed** - everything is self-contained!
           
