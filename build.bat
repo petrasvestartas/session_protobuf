@@ -62,15 +62,15 @@ echo         .protoc_arg("--experimental_allow_proto3_optional") >> generated\ru
 echo         .out_dir(^&out_dir) >> generated\rust\build.rs
 echo         .compile_protos( >> generated\rust\build.rs
 echo             ^&[ >> generated\rust\build.rs
-echo                 "../../proto/color.proto", >> generated\rust\build.rs
-echo                 "../../proto/point.proto", >> generated\rust\build.rs
+echo                 "proto/color.proto", >> generated\rust\build.rs
+echo                 "proto/point.proto", >> generated\rust\build.rs
 echo             ], >> generated\rust\build.rs
 echo             ^&[ >> generated\rust\build.rs
-echo                 "../../proto/", >> generated\rust\build.rs
+echo                 "proto/", >> generated\rust\build.rs
 echo             ], >> generated\rust\build.rs
 echo         )?; >> generated\rust\build.rs
 echo. >> generated\rust\build.rs
-echo     println!("cargo:rerun-if-changed=../../proto/"); >> generated\rust\build.rs
+echo     println!("cargo:rerun-if-changed=proto/"); >> generated\rust\build.rs
 echo     Ok(()) >> generated\rust\build.rs
 echo } >> generated\rust\build.rs
 
@@ -85,14 +85,11 @@ echo #![allow(clippy::all)] >> generated\rust\src\lib.rs
 echo. >> generated\rust\src\lib.rs
 echo pub use prost::Message; >> generated\rust\src\lib.rs
 echo. >> generated\rust\src\lib.rs
-echo // Include generated protobuf modules from build.rs >> generated\rust\src\lib.rs
-echo // These files are generated at build time in OUT_DIR >> generated\rust\src\lib.rs
-echo include!(concat!(env!("OUT_DIR"), "/session_proto.color.rs")); >> generated\rust\src\lib.rs
-echo include!(concat!(env!("OUT_DIR"), "/session_proto.point.rs")); >> generated\rust\src\lib.rs
+echo // Include generated protobuf code from build.rs >> generated\rust\src\lib.rs
+echo // This file is generated at build time in OUT_DIR >> generated\rust\src\lib.rs
+echo include!(concat!(env!("OUT_DIR"), "/session_proto.rs")); >> generated\rust\src\lib.rs
 echo. >> generated\rust\src\lib.rs
-echo // Re-export the main types for convenience >> generated\rust\src\lib.rs
-echo pub use color_proto::ColorProto; >> generated\rust\src\lib.rs
-echo pub use point_proto::PointProto; >> generated\rust\src\lib.rs
+echo // The types ColorProto and PointProto are now available directly >> generated\rust\src\lib.rs
 
 REM Create main.rs for testing (same as build.sh)
 echo //! Test binary for generated protobuf types > generated\rust\src\main.rs
@@ -196,6 +193,9 @@ echo 📦 Creating archives...
 
 REM Create archives (same as build.sh approach)
 cd generated
+
+REM For Rust bindings, include the proto files so the crate is self-contained
+xcopy /E /I ..\proto rust\proto\
 tar -czf ..\rust-bindings.tar.gz rust\
 cd ..
 

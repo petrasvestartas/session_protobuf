@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package session_proto;
+
+import "color.proto";
+
+// Point message - matching C++ Point class field order
+message PointProto {
+  string guid = 1;        // std::string guid
+  string name = 2;        // std::string name
+  double x = 3;           // double x
+  double y = 4;           // double y
+  double z = 5;           // double z
+  double width = 6;       // double width
+  ColorProto pointcolor = 7; // Color pointcolor
+}

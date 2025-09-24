@@ -201,15 +201,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .out_dir(&out_dir)
         .compile_protos(
             &[
-                "../../proto/color.proto",
-                "../../proto/point.proto",
+                "proto/color.proto",
+                "proto/point.proto",
             ],
             &[
-                "../../proto/",
+                "proto/",
             ],
         )?;
     
-    println!("cargo:rerun-if-changed=../../proto/");
+    println!("cargo:rerun-if-changed=proto/");
     Ok(())
 }
 EOF
@@ -226,14 +226,11 @@ cat > generated/rust/src/lib.rs << 'EOF'
 
 pub use prost::Message;
 
-// Include generated protobuf modules from build.rs
-// These files are generated at build time in OUT_DIR
-include!(concat!(env!("OUT_DIR"), "/session_proto.color.rs"));
-include!(concat!(env!("OUT_DIR"), "/session_proto.point.rs"));
+// Include generated protobuf code from build.rs
+// This file is generated at build time in OUT_DIR
+include!(concat!(env!("OUT_DIR"), "/session_proto.rs"));
 
-// Re-export the main types for convenience
-pub use color_proto::ColorProto;
-pub use point_proto::PointProto;
+// The types ColorProto and PointProto are now available directly
 EOF
 
 # Create main.rs for testing
@@ -342,6 +339,9 @@ echo "📦 Creating archives..."
 cd generated
 tar -czf ../cpp-bindings.tar.gz cpp/
 tar -czf ../python-bindings.tar.gz python/
+
+# For Rust bindings, include the proto files so the crate is self-contained
+cp -r ../proto rust/
 tar -czf ../rust-bindings.tar.gz rust/
 cd ..
 
