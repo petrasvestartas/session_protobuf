@@ -185,9 +185,10 @@ echo "  ✅ cpp-bindings.tar.gz created"
 tar -czf ../python-bindings.tar.gz python/
 echo "  ✅ python-bindings.tar.gz created"
 
-# Create Rust archive
+# Create Rust archive (include proto files for self-contained crate)
+cp -r ../proto rust/
 tar -czf ../rust-bindings.tar.gz rust/
-echo "  ✅ rust-bindings.tar.gz created"
+echo "  ✅ rust-bindings.tar.gz created (includes proto files)"
 
 cd ..
 
